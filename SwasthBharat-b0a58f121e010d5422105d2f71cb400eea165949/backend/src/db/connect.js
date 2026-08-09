@@ -18,6 +18,17 @@ let memoryServer = null;
 mongoose.set('strictQuery', true);
 
 /**
+ * In-flight connection promise, cached across invocations.
+ *
+ * Required for serverless (Vercel): a warm function container keeps module state between
+ * requests, but several requests can arrive before the first connection resolves. Without
+ * this, each one would call `mongoose.connect` again and exhaust the Atlas connection
+ * limit. Stored on `globalThis` because a platform may load the module more than once.
+ */
+const CACHE_KEY = '__swasthbharat_mongoose__';
+globalThis[CACHE_KEY] = globalThis[CACHE_KEY] || { promise: null };
+
+/**
  * Opens the database connection.
  *
  * @returns {Promise<{uri: string, inMemory: boolean}>}
@@ -26,6 +37,23 @@ export async function connectDatabase() {
   if (mongoose.connection.readyState === 1) {
     return { uri: mongoose.connection.host, inMemory: Boolean(memoryServer) };
   }
+
+  // A connection is already being established by an earlier request: wait for it rather
+  // than opening a second one.
+  if (globalThis[CACHE_KEY].promise) {
+    return globalThis[CACHE_KEY].promise;
+  }
+
+  globalThis[CACHE_KEY].promise = openConnection().catch((error) => {
+    // Clear the cache so the next request can retry rather than replaying the failure.
+    globalThis[CACHE_KEY].promise = null;
+    throw error;
+  });
+
+  return globalThis[CACHE_KEY].promise;
+}
+
+async function openConnection() {
 
   let uri = config.mongoUri;
   const inMemory = config.useInMemoryDb;

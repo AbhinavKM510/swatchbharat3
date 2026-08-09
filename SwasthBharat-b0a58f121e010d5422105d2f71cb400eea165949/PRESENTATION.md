@@ -187,13 +187,25 @@ diabetic case matters more than a false alarm.
 
 ## 9. Real-time layer (slide: "how the live alert works")
 
-- Socket.io, with **rooms** scoped to each PHC (`phc:<id>`) and district
-  (`district:<name>`).
-- A doctor's dashboard only ever receives events for their own PHC — the room name is
-  derived from their JWT, never from anything the client claims. This is also what
-  keeps one PHC's patient data from ever reaching another PHC's doctor.
-- Events: new screening created, high-risk alert, review status changed, teleconsult
-  requested, offline sync completed.
+Two implementations exist, and which one runs depends purely on how the API is hosted:
+
+- **Socket.io push (instant)** — used when the API runs as a long-lived process (local
+  dev, or any container/VM host). Events go to **rooms** scoped to each PHC
+  (`phc:<id>`) and district (`district:<name>`). A doctor's dashboard only ever receives
+  events for their own PHC, and the room name is derived from their JWT — never from
+  anything the client claims. That's what stops one PHC's patient data reaching another
+  PHC's doctor.
+- **Polling (a few seconds)** — used on the current Vercel deployment. A serverless
+  function can't hold a WebSocket open, so the dashboard re-checks the queue every 4
+  seconds and diffs the result to detect arrivals.
+
+The important part: **the same authorization rule applies either way**. The queue
+endpoint scopes every query by the doctor's own PHC from their JWT, so polling can't
+leak across PHCs any more than the socket rooms could. Switching transports changed
+latency, not the security model.
+
+Events (socket mode): new screening created, high-risk alert, review status changed,
+teleconsult requested, offline sync completed.
 
 ---
 
@@ -236,19 +248,29 @@ explanations, while the model itself would be retrained on Indian cohort data
 
 ## 13. Deployment architecture (slide: "how it's deployed", if asked)
 
+Everything runs on Vercel, as two projects from one repo, plus a managed database:
+
 ```
-Vercel (static hosting)                  Render (Node process)
-────────────────────────                 ──────────────────────
-React PWA build (dist/)                  Express API + Socket.io
-                         ── /api/* ──►    MongoDB (in-memory for demo)
-                         ◄── live data ──
+Vercel project 1 (static)         Vercel project 2 (serverless)      MongoDB Atlas
+─────────────────────────         ─────────────────────────────      ─────────────
+React PWA build (dist/)           Express API as functions            Managed cluster
+service worker, offline    ── /api/* ──►  (api/index.js wraps    ──►  (free tier)
+cache, installable         ◄── JSON ───    the same Express app)
 ```
 
-- Vercel hosts the frontend only (static files + service worker).
-- Render runs the actual backend — it needs a persistent process for Socket.io and the
-  in-memory database, which a serverless platform can't provide.
-- The two are wired together with `VITE_API_BASE_URL` (frontend → knows where the API
-  is) and `CORS_ORIGINS` (backend → allows the frontend's origin).
+- **Frontend project** — root `frontend/`, hosts the static PWA build.
+- **API project** — root is the repo's app folder (it must be, because the handler
+  imports both `backend/` and `shared/`). `api/index.js` wraps the identical Express app
+  used locally, so routing, auth and validation behave the same.
+- **Database** — MongoDB Atlas, because serverless functions don't have a persistent
+  process to hold an in-memory database.
+- Wired with `VITE_API_BASE_URL` (frontend → where the API lives) and `CORS_ORIGINS`
+  (API → which origin may call it).
+
+**The one tradeoff worth stating honestly if asked:** serverless can't hold a WebSocket
+open, so the live dashboard alert is polling here rather than an instant push. The
+Socket.io code path is intact and takes over automatically on any host that runs the API
+as a long-lived process.
 
 ---
 

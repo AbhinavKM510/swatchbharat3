@@ -3,14 +3,23 @@
  *
  * ### The live-alert path
  *
- * Socket.io pushes `assessment:high-risk` into a room scoped to this doctor's PHC. The
- * handler prepends the case to the queue in local state — it does NOT refetch. A refetch
- * would work but would take a round trip and lose the arriving card's animation, and the
- * point of this screen is that the case appears while you are looking at it.
+ * The queue refreshes itself on a short interval (`POLL_INTERVAL_MS`) and diffs the result
+ * against what is already on screen. A case that was not there before is treated as an
+ * arrival: it gets the highlight animation and, when it is HIGH risk, a toast.
  *
- * Duplicate protection matters more than it looks: the same assessment can arrive both from
- * the socket and from the initial fetch (if it was created between the two), so inserts are
- * de-duplicated by id.
+ * This used to be a Socket.io push, which was instant. It is polling now because the API is
+ * deployed as serverless functions, and a serverless function cannot hold a WebSocket open —
+ * it exists per request and is frozen between them. The backend's emit helpers are still
+ * called and simply no-op (see `backend/src/realtime/io.js`), so nothing else had to change,
+ * and the whole path returns to being a real push the moment the API runs as a long-lived
+ * process again.
+ *
+ * The observable difference is latency: a case appears within a few seconds rather than
+ * immediately. Everything else about this screen behaves the same.
+ *
+ * Duplicate protection matters more than it looks: a case can be present in the initial
+ * fetch AND in the first poll, so arrivals are tracked by id in `seenAlertIdsRef` and only
+ * ever announced once.
  *
  * ### Why the queue is ordered oldest-first within a risk band
  *
@@ -35,21 +44,29 @@ import {
 } from '@/lib/pushMessaging';
 import { api } from '@/lib/api';
 import { formatRelativeTime } from '@/lib/format';
-import { connectSocket, REALTIME_EVENTS } from '@/lib/socket';
 import { useAuth } from '@/state/AuthContext';
 import { useToast } from '@/state/ToastContext';
-import type { Assessment, DashboardSummary, HighRiskAlert, ReviewStatus } from '@/types';
+import type { Assessment, DashboardSummary, ReviewStatus } from '@/types';
 
 type StatusFilter = 'open' | 'all';
 type BandFilter = 'HIGH' | 'HIGH,MODERATE';
 
 /**
- * A socket-delivered alert only ever carries the top 3 reasons (see `ALERT_REASON_COUNT`
- * in the backend). A fetched record carries the full list, which can be longer. Capping
- * both to the same count keeps a socket-delivered card and a refresh-delivered card
- * identical for the same case, rather than one looking more thorough than the other.
+ * Reasons shown per queue card.
+ *
+ * Held at 3 so a card stays scannable in a worklist — a doctor triaging twenty cases needs
+ * the headline findings, and the full list is one tap away in the expanded view.
  */
 const QUEUE_CARD_REASON_COUNT = 3;
+
+/**
+ * How often the queue re-checks the server for new cases.
+ *
+ * 4s is a deliberate compromise: fast enough that a case submitted during a live demo shows
+ * up while everyone is still looking at the screen, slow enough that a dashboard left open
+ * for an hour does not hammer the API (900 requests/hour on serverless, well within limits).
+ */
+const POLL_INTERVAL_MS = 4000;
 
 export function DoctorDashboardPage() {
   const { t, language } = useI18n();
@@ -127,17 +144,19 @@ export function DoctorDashboardPage() {
     void refreshPushRegistration();
   }, []);
 
-  /** Read inside socket handlers, which must not re-subscribe when filters change. */
+  /**
+   * Read inside the poll loop, which must not be torn down and restarted every time a
+   * filter changes — that would reset the interval and stall the next refresh.
+   */
   const filterRef = useRef({ band, status });
   filterRef.current = { band, status };
 
   /**
-   * Assessment ids already handled by a socket alert this session.
+   * Every assessment id this session has already seen.
    *
-   * A HIGH case is emitted to both the PHC room and the district room, and a doctor's
-   * socket is a member of both, so the same alert arrives twice. Checked synchronously
-   * (unlike a state setter's updater, which is not guaranteed to run before the next line)
-   * so the toast and counters only fire once per case.
+   * Primed by the initial fetch so the first poll does not announce the entire existing
+   * backlog as if it had just arrived. A case is only ever toasted once, even though it will
+   * appear in every subsequent poll response.
    */
   const seenAlertIdsRef = useRef<Set<string>>(new Set());
 
@@ -148,11 +167,15 @@ export function DoctorDashboardPage() {
         api.dashboard.flagged({ band, status, limit: 100 }),
         api.dashboard.summary(),
       ]);
+      // Everything already on the server at first paint is history, not an arrival.
+      for (const item of flagged.items) seenAlertIdsRef.current.add(item.id);
       setItems(flagged.items);
       setSummary(stats);
+      setLive(true);
     } catch {
       // NetworkFirst caching in the service worker means a dashboard opened on a dead
       // connection still shows the last known queue rather than an empty screen.
+      setLive(false);
       show(t('errors.network'), 'error');
     } finally {
       setLoading(false);
@@ -163,130 +186,68 @@ export function DoctorDashboardPage() {
     void load();
   }, [load]);
 
-  /* Realtime -------------------------------------------------------------- */
+  /* Near-real-time queue refresh ------------------------------------------ */
   useEffect(() => {
-    const socket = connectSocket();
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
 
-    const onReady = () => setLive(true);
-    const onDisconnect = () => setLive(false);
+    const poll = async () => {
+      try {
+        const { band: currentBand, status: currentStatus } = filterRef.current;
+        const [flagged, stats] = await Promise.all([
+          api.dashboard.flagged({ band: currentBand, status: currentStatus, limit: 100 }),
+          api.dashboard.summary(),
+        ]);
+        if (cancelled) return;
 
-    const onHighRisk = (alert: HighRiskAlert) => {
-      // Respect the current filter: an arriving MODERATE case must not appear in a
-      // HIGH-only list, or the list stops matching its own heading.
-      if (filterRef.current.band === 'HIGH' && alert.riskBand !== 'HIGH') return;
+        setLive(true);
+        setSummary(stats);
 
-      // The same alert can legitimately arrive twice: every socket joins both a PHC room
-      // and a district room, and a HIGH case is emitted to both (see
-      // `assessmentService.js`). A doctor is a member of both, so their single socket
-      // receives the event twice. Checked here, synchronously, rather than inside the
-      // `setItems` updater below — a state updater is not guaranteed to run before the
-      // toast/counter code that follows it.
-      if (seenAlertIdsRef.current.has(alert.assessmentId)) return;
-      seenAlertIdsRef.current.add(alert.assessmentId);
+        // Anything the server has that this session has never seen is an arrival.
+        const arrivals = flagged.items.filter((item) => !seenAlertIdsRef.current.has(item.id));
+        for (const item of arrivals) seenAlertIdsRef.current.add(item.id);
 
-      setItems((current) => {
-        if (current.some((item) => item.id === alert.assessmentId)) return current;
+        // Replace wholesale rather than merging: the server response IS the queue, already
+        // filtered and sorted (risk band, then oldest-first). Merging would let a case a
+        // doctor triaged on another device linger here.
+        setItems(flagged.items);
 
-        // Build a minimally-populated Assessment from the alert payload. The alert carries
-        // everything the card renders; a full record is only needed if the doctor opens it.
-        const optimistic = {
-          id: alert.assessmentId,
-          clientId: alert.clientId,
-          patientId: alert.patient.id,
-          patientClientId: '',
-          patient: {
-            id: alert.patient.id,
-            clientId: '',
-            name: alert.patient.name,
-            age: alert.patient.age,
-            sex: alert.patient.sex,
-            phone: '',
-            village: alert.patient.village,
-            phcId: alert.phcId,
-            district: alert.district,
-            capturedAt: alert.capturedAt,
-            createdAt: alert.capturedAt,
-          },
-          phcId: alert.phcId,
-          district: alert.district,
-          createdBy: { id: alert.reportedBy.id, name: alert.reportedBy.name, phone: '' },
-          riskBand: alert.riskBand,
-          riskPercent: alert.riskPercent,
-          probability: alert.riskPercent / 100,
-          derived: alert.derived,
-          imputedFields: [],
-          reasons: alert.topReasons,
-          recommendations: [],
-          decisionPath: [],
-          // Carried on the alert specifically so this optimistic card renders the same
-          // tags as one that arrived from a fetch. `attributions` is intentionally left
-          // empty: the alert does not carry it and the queue card does not show it.
-          secondOpinion: alert.secondOpinion ?? null,
-          modelDisagreement: alert.modelDisagreement ?? false,
-          attributions: [],
-          capturedAt: alert.capturedAt,
-          syncedAt: alert.syncedAt,
-          source: alert.source,
-          inputMethod: alert.inputMethod,
-          language: 'bn',
-          deviceRiskBand: null,
-          bandMismatch: alert.bandMismatch,
-          reviewStatus: alert.reviewStatus,
-          reviewedAt: null,
-          reviewNote: '',
-          createdAt: alert.syncedAt,
-        } as unknown as Assessment;
+        if (arrivals.length > 0) {
+          setArrivedIds((current) => {
+            const next = new Set(current);
+            for (const item of arrivals) next.add(item.id);
+            return next;
+          });
+        }
 
-        return [optimistic, ...current];
-      });
-
-      setArrivedIds((current) => new Set(current).add(alert.assessmentId));
-
-      show(
-        `${t('dashboard.newAlertTitle')}: ${t('dashboard.newAlertBody', {
-          name: alert.patient.name,
-          age: alert.patient.age,
-          village: alert.patient.village || '\u2014',
-        })}`,
-        'error',
-        7000,
-      );
-
-      // Keep the counters honest without a full reload.
-      setSummary((current) =>
-        current
-          ? {
-              ...current,
-              totals: { ...current.totals, assessments: current.totals.assessments + 1 },
-              byBand: { ...current.byBand, [alert.riskBand]: (current.byBand[alert.riskBand] ?? 0) + 1 },
-              queue: { openHighRisk: current.queue.openHighRisk + (alert.riskBand === 'HIGH' ? 1 : 0) },
-            }
-          : current,
-      );
+        // Only HIGH gets a toast. A MODERATE case appearing in the combined view is
+        // information; interrupting a doctor for it would train them to dismiss alerts.
+        for (const item of arrivals) {
+          if (item.riskBand !== 'HIGH') continue;
+          show(
+            `${t('dashboard.newAlertTitle')}: ${t('dashboard.newAlertBody', {
+              name: item.patient?.name ?? '\u2014',
+              age: item.patient?.age ?? '\u2014',
+              village: item.patient?.village || '\u2014',
+            })}`,
+            'error',
+            7000,
+          );
+        }
+      } catch {
+        // A failed poll is normal on a flaky connection. Drop the live indicator and keep
+        // the last known queue on screen rather than blanking it.
+        if (!cancelled) setLive(false);
+      } finally {
+        if (!cancelled) timer = setTimeout(() => void poll(), POLL_INTERVAL_MS);
+      }
     };
 
-    const onReviewed = (payload: { assessmentId: string; reviewStatus: ReviewStatus }) => {
-      // Another doctor triaged this case. Reflect it so two people do not both call the
-      // same patient.
-      setItems((current) =>
-        current.map((item) =>
-          item.id === payload.assessmentId ? { ...item, reviewStatus: payload.reviewStatus } : item,
-        ),
-      );
-    };
-
-    socket.on(REALTIME_EVENTS.CONNECTED, onReady);
-    socket.on('disconnect', onDisconnect);
-    socket.on(REALTIME_EVENTS.HIGH_RISK_ALERT, onHighRisk);
-    socket.on(REALTIME_EVENTS.ASSESSMENT_REVIEWED, onReviewed);
+    timer = setTimeout(() => void poll(), POLL_INTERVAL_MS);
 
     return () => {
-      socket.off(REALTIME_EVENTS.CONNECTED, onReady);
-      socket.off('disconnect', onDisconnect);
-      socket.off(REALTIME_EVENTS.HIGH_RISK_ALERT, onHighRisk);
-      socket.off(REALTIME_EVENTS.ASSESSMENT_REVIEWED, onReviewed);
-      // Left connected on unmount: the doctor may switch tabs within the app and should
-      // keep receiving alerts. The socket is torn down on logout.
+      cancelled = true;
+      if (timer) clearTimeout(timer);
     };
   }, [show, t]);
 
@@ -500,8 +461,7 @@ function QueueCard({
         {/*
           The two models disagreed on this patient's band. Not an error and deliberately
           not styled as one — it means the patient sits near a decision boundary, which is
-          a reason to look at them sooner. The alert payload carries this field too, so a
-          case that arrives live over the socket shows the same tag as a fetched one.
+          a reason to look at them sooner.
         */}
         {assessment.modelDisagreement && assessment.secondOpinion ? (
           <Tag icon={'\u2696'}>

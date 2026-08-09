@@ -2,6 +2,8 @@
   "name": "swasthbharat",
   "version": "1.0.0",
   "private": true,
+  "//type": "Required so Vercel treats api/index.js as an ES module. Without it the platform parses the handler as CommonJS and the deployment fails on the first `import`. Safe for everything else here: the ml/ scripts already use explicit .mjs extensions, and .py files are unaffected.",
+  "type": "module",
   "description": "AI-powered early disease risk prediction and rural health access platform",
   "scripts": {
     "setup": "npm install --prefix backend && npm install --prefix frontend",
@@ -62,6 +64,20 @@
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "//dependencies": "Mirrors backend/package.json EXACTLY, and exists only so the Vercel serverless deployment works. Vercel's Root Directory for the API project is this folder (it must be, because api/index.js imports both backend/ and shared/), so `npm install` runs here and these are what api/index.js resolves at runtime. Node walks up from backend/src/ to this node_modules, so the same files serve the local `npm run dev:api` too. KEEP THE VERSIONS IN SYNC WITH backend/package.json - a drift here means the deployed API runs different code from the one you tested locally.",
+  "dependencies": {
+    "bcryptjs": "2.4.3",
+    "cors": "2.8.5",
+    "dotenv": "16.4.7",
+    "express": "4.21.2",
+    "express-rate-limit": "7.5.0",
+    "firebase-admin": "13.10.0",
+    "helmet": "8.0.0",
+    "jsonwebtoken": "9.0.2",
+    "mongoose": "8.9.5",
+    "morgan": "1.10.0",
+    "socket.io": "4.8.1"
   },
   "comments": {
     "why-no-workspaces": "backend and frontend are installed separately on purpose. npm workspaces would hoist a single node_modules, and three people on three laptops pulling the same repo hit fewer install problems when each package owns its own tree.",
