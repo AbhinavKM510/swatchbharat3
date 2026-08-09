@@ -77,9 +77,16 @@ async function openConnection() {
   }
 
   await mongoose.connect(uri, {
-    // Fail fast instead of hanging for 30s when Atlas is unreachable — during a live
-    // demo you want to know immediately that you should flip to the in-memory DB.
-    serverSelectionTimeoutMS: 8000,
+    /**
+     * Locally: fail fast instead of hanging for 30s when Atlas is unreachable — during a
+     * live demo you want to know immediately that you should flip to the in-memory DB.
+     *
+     * On serverless: 8s is not enough. A cold function has to do DNS resolution for the
+     * SRV record, a TLS handshake and replica-set discovery before the first query, and
+     * that legitimately exceeds 8s on a cold start — which would surface as a "database
+     * unreachable" error on a perfectly healthy cluster.
+     */
+    serverSelectionTimeoutMS: process.env.VERCEL ? 20000 : 8000,
   });
 
   return { uri, inMemory };

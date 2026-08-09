@@ -41,13 +41,30 @@ export default async function handler(req, res) {
     // Cached inside connectDatabase: concurrent requests share one connection attempt.
     await connectDatabase();
   } catch (error) {
-    // Answer in the API's own error shape rather than letting the platform return an
-    // opaque 500 — the frontend switches on `error.code`.
+    // Logged so the reason is visible in the platform's function logs even if the response
+    // body is ever trimmed down again.
+    console.error('[api] database connection failed:', error);
+
+    /**
+     * The reason is returned, not hidden.
+     *
+     * A connection failure here is a deployment misconfiguration — a missing MONGO_URI, an
+     * Atlas IP allow-list that does not include the platform, a password that was not
+     * URL-encoded — and every one of those is indistinguishable from the others behind a
+     * generic message. Mongoose's message names the host and the failure mode but never the
+     * credentials, so there is nothing secret in it.
+     */
     res.status(503).json({
       error: {
         code: 'DATABASE_UNAVAILABLE',
         message: 'Could not reach the database. Check MONGO_URI and the Atlas IP allow-list.',
-        ...(process.env.NODE_ENV === 'production' ? {} : { details: { reason: error.message } }),
+        details: {
+          reason: error?.message ?? String(error),
+          /** Which mode was attempted, so "it used the wrong one" is immediately visible. */
+          mongoUriConfigured: Boolean(process.env.MONGO_URI),
+          useInMemoryDb: process.env.USE_IN_MEMORY_DB ?? '(unset)',
+          nodeEnv: process.env.NODE_ENV ?? '(unset)',
+        },
       },
     });
     return;
