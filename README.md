@@ -28,6 +28,10 @@ keep working even when the network doesn't.
 
 ## Quick start
 
+> The app itself lives in the
+> [`SwasthBharat-b0a58f121e010d5422105d2f71cb400eea165949/`](./SwasthBharat-b0a58f121e010d5422105d2f71cb400eea165949)
+> folder. Run all commands below from inside it.
+
 Requires **Node.js 20+**. No Python needed — the ML model ships as plain JavaScript.
 
 ```bash
@@ -123,7 +127,7 @@ accuracy is 71%, recall 78% — recall is deliberately prioritized, since for a 
 tool a missed case matters more than a false alarm.
 
 More detail on the model, training, and full architecture rationale: see
-[`ml/README.md`](ml/README.md).
+[`ml/README.md`](./SwasthBharat-b0a58f121e010d5422105d2f71cb400eea165949/ml/README.md).
 
 ## Repository layout
 
