@@ -1,0 +1,35 @@
+{
+  "name": "swasthbharat-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline-first React PWA for ASHA workers, PHC doctors and district health officers",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "icons": "node scripts/generate-icons.mjs"
+  },
+  "dependencies": {
+    "dexie": "4.0.11",
+    "firebase": "12.17.1",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-router-dom": "6.28.1",
+    "socket.io-client": "4.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/react": "18.3.18",
+    "@types/react-dom": "18.3.5",
+    "@vitejs/plugin-react": "4.3.4",
+    "typescript": "5.7.3",
+    "vite": "6.0.7",
+    "vite-plugin-pwa": "0.21.1"
+  }
+}

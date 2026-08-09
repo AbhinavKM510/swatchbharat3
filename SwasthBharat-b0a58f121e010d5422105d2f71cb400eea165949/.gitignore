@@ -1,0 +1,54 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# vite-plugin-pwa's dev-mode service worker output (regenerated on every `npm run dev`)
+dev-dist/
+
+# Secrets and local config — every laptop creates its own from .env.example
+.env
+.env.local
+.env.*.local
+.env.*.bak
+!.env.example
+
+# Firebase Hosting project binding. Not a secret, but project-specific per deployer —
+# copy .firebaserc.example and fill in your own project id.
+.firebaserc
+# CLI writes local emulator/deploy state here.
+.firebase/
+
+# mongodb-memory-server downloads a mongod binary here on first run (~130 MB)
+.cache/
+.mongodb-binaries/
+
+# Python (only needed to retrain the model)
+__pycache__/
+*.py[cod]
+.venv/
+.venv*/
+venv/
+.ipynb_checkpoints/
+
+# Editors
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# Kiro local state (keep steering and hooks, they are shared)
+.kiro/local/

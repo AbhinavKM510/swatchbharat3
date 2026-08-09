@@ -1,0 +1,262 @@
+{
+  "generatedAt": "2026-08-08T20:59:37.304431+00:00",
+  "generatedBy": "ml/train_neural.py (PyTorch 2.13.0+cpu) + ml/export_neural.mjs",
+  "role": "second-opinion",
+  "authoritativeForRiskBand": false,
+  "framework": "pytorch",
+  "frameworkVersion": "2.13.0+cpu",
+  "algorithm": "MLP 8-16-8-1, ReLU, sigmoid output",
+  "hyperparameters": {
+    "hidden": [
+      16,
+      8
+    ],
+    "activation": "relu",
+    "optimiser": "adam",
+    "learningRate": 0.01,
+    "weightDecay": 0.0001,
+    "loss": "BCEWithLogitsLoss",
+    "posWeight": 1.869159,
+    "epochs": 49,
+    "maxEpochs": 1200,
+    "earlyStopPatience": 150,
+    "validationFraction": 0.2,
+    "batch": "full",
+    "randomSeed": 42
+  },
+  "epochSelection": {
+    "method": "best validation ROC-AUC on a stratified 20% slice of the train split",
+    "bestEpoch": 49,
+    "validationRocAuc": 0.7991,
+    "note": "The held-out test split was not used to choose any hyperparameter."
+  },
+  "parameterCount": 289,
+  "featureOrder": [
+    "glucose",
+    "diastolicBp",
+    "bmi",
+    "age",
+    "pregnancies",
+    "familyHistory",
+    "skinThickness",
+    "insulin"
+  ],
+  "standardisation": {
+    "mean": [
+      121.38762214983713,
+      72.03745928338762,
+      32.495276872964205,
+      33.50651465798045,
+      3.7996742671009773,
+      0.5,
+      29.65960912052117,
+      141.1058631921824
+    ],
+    "std": [
+      30.48227300104109,
+      11.94982305597823,
+      6.8996360550445734,
+      11.924946748449992,
+      3.354796249305478,
+      0.5,
+      8.937883570155881,
+      89.66079871135346
+    ]
+  },
+  "attributionBaseline": [
+    117,
+    72,
+    32.3,
+    29,
+    3,
+    0.5,
+    30,
+    125
+  ],
+  "attributionMethod": "integrated gradients, integrated exactly by subdividing the path at ReLU kinks",
+  "attributionMaxDepth": 24,
+  "attributionInitialSegments": 16,
+  "riskBands": {
+    "high": 0.6,
+    "moderate": 0.3
+  },
+  "featureImportances": {
+    "glucose": 0.389804,
+    "diastolicBp": 0.043394,
+    "bmi": 0.235529,
+    "age": 0.073736,
+    "pregnancies": 0.121899,
+    "familyHistory": 0.08679,
+    "skinThickness": 0.024067,
+    "insulin": 0.024781
+  },
+  "metrics": {
+    "train": {
+      "accuracy": 0.7557,
+      "precision": 0.6151,
+      "recall": 0.7991,
+      "specificity": 0.7325,
+      "f1": 0.6951,
+      "confusionMatrix": {
+        "truePositive": 171,
+        "falsePositive": 107,
+        "trueNegative": 293,
+        "falseNegative": 43
+      },
+      "rocAuc": 0.859
+    },
+    "test": {
+      "accuracy": 0.7143,
+      "precision": 0.5735,
+      "recall": 0.7222,
+      "specificity": 0.71,
+      "f1": 0.6393,
+      "confusionMatrix": {
+        "truePositive": 39,
+        "falsePositive": 29,
+        "trueNegative": 71,
+        "falseNegative": 15
+      },
+      "rocAuc": 0.8163
+    }
+  },
+  "heldOutBandSummary": {
+    "LOW": {
+      "patients": 63,
+      "actualDiabetic": 8,
+      "actualDiabeticRate": 0.127,
+      "share": 0.4091
+    },
+    "MODERATE": {
+      "patients": 36,
+      "actualDiabetic": 11,
+      "actualDiabeticRate": 0.3056,
+      "share": 0.2338
+    },
+    "HIGH": {
+      "patients": 55,
+      "actualDiabetic": 35,
+      "actualDiabeticRate": 0.6364,
+      "share": 0.3571
+    }
+  },
+  "crossCheck": {
+    "reference": "pytorch 2.13.0+cpu",
+    "maxProbabilityDelta": 9.172e-8,
+    "floatTolerance": 0.00001,
+    "worstCompletenessGap": 9.953e-9,
+    "attributionRegionsPerPath": {
+      "max": 383,
+      "mean": 221.79
+    },
+    "referenceMetrics": {
+      "train": {
+        "accuracy": 0.7557,
+        "precision": 0.6151,
+        "recall": 0.7991,
+        "specificity": 0.7325,
+        "f1": 0.6951,
+        "confusionMatrix": {
+          "truePositive": 171,
+          "falsePositive": 107,
+          "trueNegative": 293,
+          "falseNegative": 43
+        },
+        "rocAuc": 0.859
+      },
+      "test": {
+        "accuracy": 0.7143,
+        "precision": 0.5735,
+        "recall": 0.7222,
+        "specificity": 0.71,
+        "f1": 0.6393,
+        "confusionMatrix": {
+          "truePositive": 39,
+          "falsePositive": 29,
+          "trueNegative": 71,
+          "falseNegative": 15
+        },
+        "rocAuc": 0.8163
+      }
+    },
+    "note": "metrics in this artefact were computed by its own JavaScript forward pass over the held-out split; referenceMetrics are PyTorch float32 for comparison"
+  },
+  "comparisonWithShippedTree": {
+    "tree": {
+      "metrics": {
+        "accuracy": 0.7143,
+        "precision": 0.5676,
+        "recall": 0.7778,
+        "specificity": 0.68,
+        "f1": 0.6563,
+        "confusionMatrix": {
+          "truePositive": 42,
+          "falsePositive": 32,
+          "trueNegative": 68,
+          "falseNegative": 12
+        },
+        "rocAuc": 0.8064
+      },
+      "heldOutBandSummary": {
+        "LOW": {
+          "patients": 74,
+          "actualDiabetic": 11,
+          "actualDiabeticRate": 0.1486
+        },
+        "MODERATE": {
+          "patients": 14,
+          "actualDiabetic": 3,
+          "actualDiabeticRate": 0.2143
+        },
+        "HIGH": {
+          "patients": 66,
+          "actualDiabetic": 40,
+          "actualDiabeticRate": 0.6061
+        }
+      }
+    },
+    "neural": {
+      "metrics": {
+        "accuracy": 0.7143,
+        "precision": 0.5735,
+        "recall": 0.7222,
+        "specificity": 0.71,
+        "f1": 0.6393,
+        "confusionMatrix": {
+          "truePositive": 39,
+          "falsePositive": 29,
+          "trueNegative": 71,
+          "falseNegative": 15
+        },
+        "rocAuc": 0.8163
+      },
+      "heldOutBandSummary": {
+        "LOW": {
+          "patients": 63,
+          "actualDiabetic": 8,
+          "actualDiabeticRate": 0.127,
+          "share": 0.4091
+        },
+        "MODERATE": {
+          "patients": 36,
+          "actualDiabetic": 11,
+          "actualDiabeticRate": 0.3056,
+          "share": 0.2338
+        },
+        "HIGH": {
+          "patients": 55,
+          "actualDiabetic": 35,
+          "actualDiabeticRate": 0.6364,
+          "share": 0.3571
+        }
+      }
+    }
+  },
+  "dataset": {
+    "name": "Pima Indians Diabetes Database",
+    "records": 768,
+    "trainRecords": 614,
+    "testRecords": 154,
+    "knownLimitation": "Cohort is adult Pima Native American women. Not representative of rural India. Prototype only; retrain on ICMR-INDIAB or NFHS-5 before any real deployment."
+  }
+}

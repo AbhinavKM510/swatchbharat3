@@ -1,0 +1,50 @@
+<!doctype html>
+<!--
+  lang is set to Bengali as the default, then updated at runtime by the i18n provider to
+  match the chosen language. Screen readers need the real language to pronounce Bengali
+  and Hindi correctly, and a wrong lang attribute makes them unusable.
+-->
+<html lang="bn">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <title>SwasthBharat — Health Risk Screening</title>
+    <meta
+      name="description"
+      content="Offline-first diabetes risk screening for ASHA workers, with explainable results in Bengali, Hindi and English."
+    />
+
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <meta name="theme-color" content="#0f766e" />
+
+    <!-- Installed PWAs on iOS need these to open without Safari chrome. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="SwasthBharat" />
+
+    <!--
+      Noto Sans Bengali and Devanagari, loaded from Google Fonts with a preconnect.
+      Rendering is NOT dependent on this: the CSS font stack falls back to the system
+      Indic fonts, which every Android device ships. A field device on 2G must not wait
+      on a webfont before a health worker can read a form label.
+    -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700&family=Noto+Sans+Bengali:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap"
+    />
+  </head>
+  <body>
+    <div id="root"></div>
+    <noscript>
+      This application needs JavaScript. এই অ্যাপটি চালাতে জাভাস্ক্রিপ্ট দরকার। इस ऐप के लिए
+      जावास्क्रिप्ट ज़रूरी है।
+    </noscript>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

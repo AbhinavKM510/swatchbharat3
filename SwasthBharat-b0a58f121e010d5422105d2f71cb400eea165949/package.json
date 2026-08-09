@@ -1,0 +1,70 @@
+{
+  "name": "swasthbharat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-powered early disease risk prediction and rural health access platform",
+  "scripts": {
+    "setup": "npm install --prefix backend && npm install --prefix frontend",
+
+    "dev:api": "npm run dev --prefix backend",
+    "dev:web": "npm run dev --prefix frontend",
+
+    "seed": "npm run seed --prefix backend",
+    "seed:reset": "npm run seed:reset --prefix backend",
+
+    "//users": "Creates and manages REAL logins (your own phone number and password) as opposed to the demo seed accounts. Run with no arguments for usage. 'users create' needs the API running; 'users password' talks to MongoDB directly and does not. doctor/officer creation requires SETUP_TOKEN in backend/.env, because those roles read patient data beyond their own submissions.",
+    "users": "npm run users --prefix backend --",
+
+    "check:api": "npm run check --prefix backend",
+    "check:security": "npm run check:security --prefix backend",
+    "check:web": "npm run typecheck --prefix frontend",
+
+    "//check:i18n": "Audits bn.json and hi.json against en.json: missing keys, extra keys, empty values, and {placeholder} sets. Catches the failure the runtime audit cannot - a dropped placeholder makes a number vanish from a sentence in one language only.",
+    "check:i18n": "npm run check:i18n --prefix frontend",
+    "build:web": "npm run build --prefix frontend",
+
+    "//preview:web": "Serves the PRODUCTION build on :4173. Required for anything involving the service worker — offline page reload and PWA install do NOT work on the dev server, because Vite serves modules on demand and there is nothing static to precache. Demo from here, not from dev:web.",
+    "preview:web": "npm run preview --prefix frontend",
+    "demo": "npm run build --prefix frontend && npm run preview --prefix frontend",
+
+    "//deploy:web": "Builds the frontend and deploys ONLY Hosting to Firebase. Needs firebase-tools installed globally (npm i -g firebase-tools), 'firebase login' once, and a .firebaserc (copy .firebaserc.example and fill in your project id). Does NOT deploy the backend or touch MongoDB — see README.md 'Deploying'.",
+    "deploy:web": "npm run build --prefix frontend && firebase deploy --only hosting",
+
+    "train": "node ml/train_model.mjs",
+
+    "//ml:compare": "Cross-validates the shipped Node-trained tree against scikit-learn and prints both side by side. READ-ONLY - cannot touch the live model, so it is safe to run in front of an audience. Needs numpy/pandas/scikit-learn (see ml/requirements.txt).",
+    "ml:compare": "python ml/compare_trainers.py",
+
+    "//ml:verify": "Re-checks the COMMITTED neural artefact in shared/risk/ against a split rebuilt from the CSV: metrics, band populations, attribution completeness and the demo case. READ-ONLY, no Python needed. Run this before a demo.",
+    "ml:verify": "node ml/verify_neural.mjs",
+
+    "//ml:prepare": "Builds the shared train/test split every trainer reads, and asserts it reproduces the shipped tree's preprocessing. Writes only ml/export/dataset_split.json.",
+    "ml:prepare": "node ml/prepare_dataset.mjs",
+
+    "//ml:train:neural": "Trains the PyTorch second-opinion MLP. Writes only ml/export/neural_weights.json - it cannot touch shared/risk/. Requires ml:prepare to have run.",
+    "ml:train:neural": "python ml/train_neural.py",
+
+    "//ml:export:neural": "Renders shared/risk/neural_model.js from the trained weights, measures the rendered artefact with its own forward pass, and refuses to write if it cannot reproduce PyTorch or if attribution completeness fails.",
+    "ml:export:neural": "node ml/export_neural.mjs",
+
+    "//ml:neural": "The whole neural pipeline end to end. OVERWRITES shared/risk/neural_model.js, i.e. the second opinion the live app shows. Use ml:verify instead unless you intend to retrain.",
+    "ml:neural": "npm run ml:prepare && npm run ml:train:neural && npm run ml:export:neural && npm run ml:verify",
+
+    "//ml:train:neural:tf": "Independent TensorFlow/Keras fit of the same architecture, to corroborate the PyTorch result. Writes only ml/export/neural_weights_tf.json and is never served. Requires ml:prepare, and ml:train:neural first if you want the side-by-side.",
+    "ml:train:neural:tf": "python ml/train_neural_tf.py",
+
+    "//ml:compare:all": "Three-way comparison of the CART tree, the PyTorch MLP and the Keras MLP, plus the promotion-gate verdict. READ-ONLY and standard-library only - no numpy, no torch, no tensorflow - so it runs anywhere in about a second. Safe in front of an audience.",
+    "ml:compare:all": "python ml/compare_models.py",
+
+    "//ml:train:py": "Retrains with scikit-learn and OVERWRITES shared/risk/decision_tree_rules.js, i.e. the model the live app scores with. Use ml:compare instead unless you actually intend to replace the shipped tree.",
+    "ml:train:py": "python ml/train_model.py",
+    "icons": "npm run icons --prefix frontend"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "comments": {
+    "why-no-workspaces": "backend and frontend are installed separately on purpose. npm workspaces would hoist a single node_modules, and three people on three laptops pulling the same repo hit fewer install problems when each package owns its own tree.",
+    "two-terminals": "There is no combined 'dev' script. Run dev:api in one terminal and dev:web in another, so you can read each one's output. A concurrently-wrapped script hides whichever one crashed."
+  }
+}

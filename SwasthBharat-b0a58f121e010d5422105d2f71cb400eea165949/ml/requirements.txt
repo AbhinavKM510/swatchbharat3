@@ -1,0 +1,51 @@
+# Python is needed ONLY to retrain. The running application never imports Python:
+# every trained model is exported to plain JavaScript in shared/risk/ and evaluated
+# in-process, in the browser and on the API.
+#
+#   python -m pip install -r ml/requirements.txt
+#
+# PYTHON 3.13+ USERS: the pins below predate your interpreter and have no prebuilt
+# wheels for it, so pip falls back to compiling numpy from source and fails without a
+# modern C toolchain. Install unpinned instead — none of the trainers use a
+# version-specific API:
+#   python -m pip install --only-binary=:all: numpy pandas scikit-learn torch tensorflow
+
+# ---------------------------------------------------------------------------
+# Decision tree (shipped model, authoritative for the risk band)
+#   python ml/train_model.py      reference scikit-learn trainer  (OVERWRITES shared/risk/)
+#   python ml/compare_trainers.py read-only CART vs scikit-learn comparison
+# No Python at all? node ml/train_model.mjs produces the same artefact.
+# ---------------------------------------------------------------------------
+numpy==2.1.3
+pandas==2.2.3
+scikit-learn==1.5.2
+
+# ---------------------------------------------------------------------------
+# Neural second opinion (attributions + disagreement signal; NOT authoritative)
+#   node ml/prepare_dataset.mjs   shared split, run first
+#   python ml/train_neural.py     PyTorch trainer      -> ml/export/neural_weights.json
+#   python ml/train_neural_tf.py  Keras cross-check    -> read-only comparison
+#   node ml/export_neural.mjs     renders + measures   -> shared/risk/neural_model.js
+#
+# These two trainers deliberately use numpy ONLY — no pandas, no scikit-learn — so
+# they run in a minimal environment. Verified working on:
+#   Python 3.12.10 / numpy 2.5.1 / torch 2.13.0+cpu / tensorflow 2.21.0
+#
+# The CPU builds are what you want; there is nothing here that benefits from a GPU.
+# A 289-parameter MLP on 614 rows trains in well under a second on a laptop core.
+# ---------------------------------------------------------------------------
+torch==2.13.0
+tensorflow==2.21.0
+
+# ---------------------------------------------------------------------------
+# NOTE ON MIXING THE TWO GROUPS
+# The pinned numpy above (2.1.3) is older than what torch 2.13 / tensorflow 2.21
+# resolve against. Installing everything from this file in one shot can therefore
+# downgrade numpy and break the neural trainers. If you need both groups in one
+# environment, install unpinned:
+#   python -m pip install --only-binary=:all: numpy pandas scikit-learn torch tensorflow
+#
+# The project's .venv312 currently has numpy + torch + tensorflow but NOT
+# pandas/scikit-learn, which is enough for the neural pipeline and for the app, but
+# means `npm run ml:compare` and `npm run ml:train:py` will not run in it.
+# ---------------------------------------------------------------------------

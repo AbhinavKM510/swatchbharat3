@@ -1,0 +1,306 @@
+{
+  "generatedAt": "2026-08-07T20:26:35.239Z",
+  "generatedBy": "ml/train_model.mjs (Node CART, gini, class_weight=balanced)",
+  "algorithm": "DecisionTreeClassifier-equivalent CART",
+  "hyperparameters": {
+    "criterion": "gini",
+    "maxDepth": 4,
+    "minSamplesLeaf": 20,
+    "classWeight": "balanced",
+    "randomSeed": 42,
+    "testFraction": 0.2
+  },
+  "dataset": {
+    "name": "Pima Indians Diabetes Database",
+    "originalSource": "UCI Machine Learning Repository / National Institute of Diabetes and Digestive and Kidney Diseases",
+    "retrievedFrom": "https://raw.githubusercontent.com/jbrownlee/Datasets/master/pima-indians-diabetes.csv",
+    "records": 768,
+    "trainRecords": 614,
+    "testRecords": 154,
+    "positiveRate": 0.349,
+    "knownLimitation": "Cohort is adult Pima Native American women. Not representative of rural India. Prototype only; retrain on ICMR-INDIAB or NFHS-5 before any real deployment.",
+    "zeroMeansMissing": [
+      "Glucose",
+      "BloodPressure",
+      "SkinThickness",
+      "Insulin",
+      "BMI"
+    ],
+    "missingValueCounts": {
+      "Glucose": 5,
+      "BloodPressure": 35,
+      "SkinThickness": 227,
+      "Insulin": 374,
+      "BMI": 11
+    }
+  },
+  "featureOrder": [
+    "glucose",
+    "diastolicBp",
+    "bmi",
+    "age",
+    "pregnancies",
+    "familyHistory",
+    "skinThickness",
+    "insulin"
+  ],
+  "imputationMedians": {
+    "Glucose": 117,
+    "BloodPressure": 72,
+    "SkinThickness": 30,
+    "Insulin": 125,
+    "BMI": 32.3
+  },
+  "pedigreeThreshold": 0.3815,
+  "classWeights": [
+    0.7675,
+    1.434579
+  ],
+  "riskBands": {
+    "high": 0.6,
+    "moderate": 0.3
+  },
+  "featureImportances": {
+    "glucose": 0.583962,
+    "diastolicBp": 0.004604,
+    "bmi": 0.220576,
+    "age": 0.169083,
+    "pregnancies": 0.006396,
+    "familyHistory": 0.003202,
+    "skinThickness": 0,
+    "insulin": 0.012175
+  },
+  "metrics": {
+    "train": {
+      "accuracy": 0.7818,
+      "precision": 0.637,
+      "recall": 0.8692,
+      "specificity": 0.735,
+      "f1": 0.7352,
+      "confusionMatrix": {
+        "truePositive": 186,
+        "falsePositive": 106,
+        "trueNegative": 294,
+        "falseNegative": 28
+      },
+      "rocAuc": 0.8705
+    },
+    "test": {
+      "accuracy": 0.7143,
+      "precision": 0.5676,
+      "recall": 0.7778,
+      "specificity": 0.68,
+      "f1": 0.6563,
+      "confusionMatrix": {
+        "truePositive": 42,
+        "falsePositive": 32,
+        "trueNegative": 68,
+        "falseNegative": 12
+      },
+      "rocAuc": 0.8064
+    }
+  },
+  "heldOutBandSummary": {
+    "LOW": {
+      "patients": 74,
+      "actualDiabetic": 11,
+      "actualDiabeticRate": 0.1486
+    },
+    "MODERATE": {
+      "patients": 14,
+      "actualDiabetic": 3,
+      "actualDiabeticRate": 0.2143
+    },
+    "HIGH": {
+      "patients": 66,
+      "actualDiabetic": 40,
+      "actualDiabeticRate": 0.6061
+    }
+  },
+  "tree": {
+    "nodeCount": 27,
+    "leafCount": 14,
+    "leaves": [
+      {
+        "id": 4,
+        "probability": 0,
+        "band": "LOW",
+        "samples": 91,
+        "rawPositives": 0,
+        "conditions": [
+          "glucose <= 123.5",
+          "age <= 28.5",
+          "bmi <= 33.25",
+          "pregnancies <= 2.5"
+        ]
+      },
+      {
+        "id": 5,
+        "probability": 0.141576,
+        "band": "LOW",
+        "samples": 37,
+        "rawPositives": 3,
+        "conditions": [
+          "glucose <= 123.5",
+          "age <= 28.5",
+          "bmi <= 33.25",
+          "pregnancies > 2.5"
+        ]
+      },
+      {
+        "id": 7,
+        "probability": 0.229208,
+        "band": "LOW",
+        "samples": 51,
+        "rawPositives": 7,
+        "conditions": [
+          "glucose <= 123.5",
+          "age <= 28.5",
+          "bmi > 33.25",
+          "diastolicBp <= 75"
+        ]
+      },
+      {
+        "id": 8,
+        "probability": 0.371172,
+        "band": "MODERATE",
+        "samples": 25,
+        "rawPositives": 6,
+        "conditions": [
+          "glucose <= 123.5",
+          "age <= 28.5",
+          "bmi > 33.25",
+          "diastolicBp > 75"
+        ]
+      },
+      {
+        "id": 10,
+        "probability": 0,
+        "band": "LOW",
+        "samples": 33,
+        "rawPositives": 0,
+        "conditions": [
+          "glucose <= 123.5",
+          "age > 28.5",
+          "bmi <= 26.35"
+        ]
+      },
+      {
+        "id": 12,
+        "probability": 0.223339,
+        "band": "LOW",
+        "samples": 45,
+        "rawPositives": 6,
+        "conditions": [
+          "glucose <= 123.5",
+          "age > 28.5",
+          "bmi > 26.35",
+          "glucose <= 100.5"
+        ]
+      },
+      {
+        "id": 13,
+        "probability": 0.663322,
+        "band": "HIGH",
+        "samples": 76,
+        "rawPositives": 39,
+        "conditions": [
+          "glucose <= 123.5",
+          "age > 28.5",
+          "bmi > 26.35",
+          "glucose > 100.5"
+        ]
+      },
+      {
+        "id": 16,
+        "probability": 0.089566,
+        "band": "LOW",
+        "samples": 20,
+        "rawPositives": 1,
+        "conditions": [
+          "glucose > 123.5",
+          "bmi <= 30.05",
+          "age <= 26.5"
+        ]
+      },
+      {
+        "id": 18,
+        "probability": 0.674992,
+        "band": "HIGH",
+        "samples": 38,
+        "rawPositives": 20,
+        "conditions": [
+          "glucose > 123.5",
+          "bmi <= 30.05",
+          "age > 26.5",
+          "age <= 50.5"
+        ]
+      },
+      {
+        "id": 19,
+        "probability": 0.383877,
+        "band": "MODERATE",
+        "samples": 20,
+        "rawPositives": 5,
+        "conditions": [
+          "glucose > 123.5",
+          "bmi <= 30.05",
+          "age > 26.5",
+          "age > 50.5"
+        ]
+      },
+      {
+        "id": 22,
+        "probability": 0.792109,
+        "band": "HIGH",
+        "samples": 79,
+        "rawPositives": 53,
+        "conditions": [
+          "glucose > 123.5",
+          "bmi > 30.05",
+          "glucose <= 157.5",
+          "insulin <= 192"
+        ]
+      },
+      {
+        "id": 23,
+        "probability": 0.594916,
+        "band": "MODERATE",
+        "samples": 25,
+        "rawPositives": 11,
+        "conditions": [
+          "glucose > 123.5",
+          "bmi > 30.05",
+          "glucose <= 157.5",
+          "insulin > 192"
+        ]
+      },
+      {
+        "id": 25,
+        "probability": 0.854535,
+        "band": "HIGH",
+        "samples": 29,
+        "rawPositives": 22,
+        "conditions": [
+          "glucose > 123.5",
+          "bmi > 30.05",
+          "glucose > 157.5",
+          "familyHistory <= 0.5"
+        ]
+      },
+      {
+        "id": 26,
+        "probability": 0.950394,
+        "band": "HIGH",
+        "samples": 45,
+        "rawPositives": 41,
+        "conditions": [
+          "glucose > 123.5",
+          "bmi > 30.05",
+          "glucose > 157.5",
+          "familyHistory > 0.5"
+        ]
+      }
+    ]
+  }
+}

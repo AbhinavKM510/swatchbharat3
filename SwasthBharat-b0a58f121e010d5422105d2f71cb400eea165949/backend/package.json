@@ -1,0 +1,36 @@
+{
+  "name": "swasthbharat-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Express + Socket.io + MongoDB API for the SwasthBharat rural health risk platform",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "seed": "node src/seed.js",
+    "seed:reset": "node src/seed.js --reset",
+    "check": "node scripts/check-demo-flow.mjs",
+    "check:security": "node scripts/check-security.mjs",
+    "users": "node scripts/manage-users.mjs"
+  },
+  "dependencies": {
+    "bcryptjs": "2.4.3",
+    "cors": "2.8.5",
+    "dotenv": "16.4.7",
+    "express": "4.21.2",
+    "express-rate-limit": "7.5.0",
+    "firebase-admin": "13.10.0",
+    "helmet": "8.0.0",
+    "jsonwebtoken": "9.0.2",
+    "mongoose": "8.9.5",
+    "morgan": "1.10.0",
+    "socket.io": "4.8.1"
+  },
+  "devDependencies": {
+    "mongodb-memory-server": "10.1.4",
+    "socket.io-client": "4.8.1"
+  }
+}
